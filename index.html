@@ -61,6 +61,11 @@
                 padding-bottom: 2rem;
             }
         }
+
+        /* Modal performance: isolate layout, reduce repaints */
+        .modal-content {
+            contain: layout style paint;
+        }
     </style>
 </head>
 <body class="bg-neutral-50 dark:bg-neutral-900 text-neutral-800 dark:text-neutral-100 transition-colors duration-300 select-none font-sans antialiased md:overflow-hidden">
@@ -98,7 +103,7 @@
                 >
                     <i class="fa-solid fa-layer-group w-6 text-center"></i>
                     <span>Категории</span>
-                    <span class="ml-auto text-xs bg-neutral-200 dark:bg-neutral-700 px-2 py-0.5 rounded-full group-hover:bg-white dark:group-hover:bg-neutral-600 transition-colors">
+                    <span class="ml-auto text-white text-xs bg-neutral-200 dark:bg-neutral-700 px-2 py-0.5 rounded-full group-hover:bg-white dark:group-hover:bg-neutral-600 transition-colors">
                         {{ categories.length }}
                     </span>
                 </button>
@@ -162,28 +167,37 @@
 
             <!-- Main Scrollable Area -->
             <main class="flex-1 md:overflow-y-auto w-full p-4 md:p-8 safe-bottom">
-                <div class="max-w-3xl mx-auto md:max-w-5xl md:mx-0 w-full space-y-6">
+                <div class="max-w-3xl mx-auto lg:max-w-full md:max-w-5xl md:mx-0 w-full space-y-6">
                 
                     <!-- HOME TAB -->
                     <div v-if="currentTab === 'home'" class="space-y-6 animate-fade-in">
                         
-                        <!-- Search -->
-                        <div class="relative group">
-                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <i class="fa-solid fa-search text-neutral-400 group-focus-within:text-primary transition-colors text-lg"></i>
+                        <!-- Search + Add Button -->
+                        <div class="flex gap-3 items-stretch">
+                            <div class="relative group flex-1">
+                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                    <i class="fa-solid fa-search text-neutral-400 group-focus-within:text-primary transition-colors text-lg"></i>
+                                </div>
+                                <input 
+                                    v-model="searchQuery" 
+                                    type="text" 
+                                    placeholder="Поиск промптов по названию, тексту или категории..." 
+                                    class="block w-full pl-12 pr-4 py-4 border border-neutral-200 dark:border-neutral-700 rounded-2xl leading-5 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-sm text-base"
+                                >
                             </div>
-                            <input 
-                                v-model="searchQuery" 
-                                type="text" 
-                                placeholder="Поиск промптов по названию, тексту или категории..." 
-                                class="block w-full pl-12 pr-4 py-4 border border-neutral-200 dark:border-neutral-700 rounded-2xl leading-5 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-sm text-base"
+                            <button 
+                                @click="isAddPromptModalOpen = true" 
+                                class="shrink-0 px-5 py-4 bg-primary hover:brightness-90 text-white rounded-2xl font-medium shadow-md shadow-primary/20 active:scale-95 transition-all flex items-center gap-2 cursor-pointer border border-transparent focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-neutral-900"
                             >
+                                <i class="fa-solid fa-plus"></i>
+                                <span class="hidden sm:inline">Новый промпт</span>
+                            </button>
                         </div>
 
-                        <div class="flex flex-col lg:grid lg:grid-cols-3 gap-6 items-start">
+                        <div class="space-y-3 w-full">
                             
-                            <!-- Prompts List Column (Appears FIRST on mobile) -->
-                            <div class="order-1 lg:order-2 lg:col-span-2 space-y-3 w-full">
+                            <!-- Prompts List -->
+                            <div class="space-y-3 w-full">
                                 <h3 class="text-sm font-medium text-neutral-500 uppercase tracking-wider ml-1 flex justify-between items-center">
                                     <span>{{ searchQuery ? 'Результаты поиска' : 'Все промпты' }}</span>
                                     <span class="text-xs normal-case bg-neutral-200 dark:bg-neutral-700 px-2 py-0.5 rounded text-neutral-600 dark:text-neutral-300">{{ filteredPrompts.length }} шт.</span>
@@ -221,52 +235,11 @@
                                 </div>
                             </div>
 
-                            <!-- Add Prompt Column (Appears SECOND on mobile, LEFT on desktop) -->
-                            <div class="order-2 lg:order-1 lg:col-span-1 w-full bg-white dark:bg-neutral-800 rounded-2xl shadow-sm border border-neutral-100 dark:border-neutral-700 p-5 md:sticky md:top-4">
-                                <h2 class="text-lg font-semibold mb-4 flex items-center text-neutral-900 dark:text-white">
-                                    <i class="fa-solid fa-plus-circle mr-2 text-primary"></i>
-                                    Новый промпт
-                                </h2>
-                                
-                                <div class="space-y-3">
-                                    <input 
-                                        v-model="newPrompt.title" 
-                                        type="text" 
-                                        placeholder="Заголовок" 
-                                        class="w-full px-4 py-2 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary outline-none transition-all dark:text-white placeholder-neutral-400"
-                                    >
-                                    
-                                    <select 
-                                        v-model="newPrompt.categoryId" 
-                                        class="w-full px-4 py-2 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary outline-none transition-all appearance-none dark:text-white text-neutral-500 dark:text-neutral-300"
-                                    >
-                                        <option value="" disabled>Выберите категорию</option>
-                                        <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-                                            {{ cat.name }}
-                                        </option>
-                                    </select>
-                                    
-                                    <textarea 
-                                        v-model="newPrompt.text" 
-                                        rows="6" 
-                                        placeholder="Текст вашего промпта..." 
-                                        class="w-full px-4 py-2 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary outline-none transition-all resize-none dark:text-white placeholder-neutral-400"
-                                    ></textarea>
-                                    
-                                    <button 
-                                        @click="addPrompt" 
-                                        class="w-full py-2.5 bg-primary hover:brightness-90 text-white rounded-lg font-medium shadow-md shadow-primary/20 active:scale-95 transition-all flex justify-center items-center cursor-pointer"
-                                    >
-                                        <i class="fa-solid fa-save mr-2"></i> Сохранить
-                                    </button>
-                                </div>
-                            </div>
-
                         </div>
                     </div>
 
                     <!-- CATEGORIES TAB -->
-                    <div v-if="currentTab === 'categories'" class="space-y-4 max-w-4xl">
+                    <div v-if="currentTab === 'categories'" class="space-y-4 max-w-4xl lg:max-w-full">
                         <div class="flex justify-between items-center mb-4 px-1">
                             <h2 class="text-2xl font-bold text-neutral-900 dark:text-white md:hidden">Категории</h2>
                         </div>
@@ -276,7 +249,7 @@
                         </div>
 
                         <!-- Fixed Desktop Layout: Added items-start to prevent rows from expanding together -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
                             <div v-for="cat in categories" :key="cat.id" class="bg-white dark:bg-neutral-800 rounded-2xl overflow-hidden shadow-sm border border-neutral-100 dark:border-neutral-700 flex flex-col">
                                 <!-- Category Header -->
                                 <div
@@ -329,7 +302,7 @@
                     </div>
 
                     <!-- SETTINGS TAB -->
-                    <div v-if="currentTab === 'settings'" class="space-y-6 max-w-2xl">
+                    <div v-if="currentTab === 'settings'" class="space-y-6 max-w-2xl lg:max-w-full">
                         <h2 class="text-2xl font-bold px-1 text-neutral-900 dark:text-white md:hidden">Настройки</h2>
 
                         <!-- Appearance -->
@@ -493,7 +466,7 @@
                             </div>
 
                             <!-- Category List -->
-                            <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                            <div class="space-y-2 lg:space-x-2 lg:grid lg:grid-cols-3 max-h-60 overflow-y-auto lg:pr-14 pr-1">
                                 <div 
                                     v-for="cat in categories" 
                                     :key="cat.id" 
@@ -623,6 +596,103 @@
                     </button>
                 </div>
             </nav>
+
+            <!-- ADD PROMPT MODAL -->
+            <transition name="fade">
+                <div v-if="isAddPromptModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" @click.self="closeAddPromptModal">
+                    <div class="modal-content bg-white dark:bg-neutral-800 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                        <!-- Header -->
+                        <div class="px-6 py-4 border-b border-neutral-100 dark:border-neutral-700 flex justify-between items-center bg-neutral-50/50 dark:bg-neutral-900/50">
+                            <h3 class="font-bold text-lg text-neutral-900 dark:text-white flex items-center gap-2">
+                                <i class="fa-solid fa-plus-circle text-primary"></i>
+                                Новый промпт
+                            </h3>
+                            <button @click="closeAddPromptModal" class="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors bg-neutral-200 dark:bg-neutral-700 rounded-full w-8 h-8 flex items-center justify-center cursor-pointer">
+                                <i class="fa-solid fa-times"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Form Body -->
+                        <div class="p-6 overflow-y-auto flex-1">
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-neutral-600 dark:text-neutral-400 mb-1.5">Заголовок</label>
+                                    <input 
+                                        v-model="newPrompt.title" 
+                                        type="text" 
+                                        placeholder="Название промпта" 
+                                        class="w-full px-4 py-3 rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary outline-none dark:text-white placeholder-neutral-400"
+                                    >
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-neutral-600 dark:text-neutral-400 mb-1.5">Категория</label>
+                                    <div class="relative" ref="categoryDropdownRef">
+                                        <button 
+                                            type="button"
+                                            @click="isCategoryDropdownOpen = !isCategoryDropdownOpen"
+                                            class="w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl bg-white dark:bg-neutral-900 border-2 border-neutral-200 dark:border-neutral-600 focus:border-primary focus:outline-none outline-none text-left"
+                                            :class="isCategoryDropdownOpen ? 'border-primary ring-2 ring-primary/20' : ''"
+                                        >
+                                            <span class="flex items-center gap-3 min-w-0">
+                                                <i class="fa-solid fa-folder text-neutral-400 dark:text-neutral-500 shrink-0"></i>
+                                                <span :class="newPrompt.categoryId ? 'text-neutral-900 dark:text-white font-medium' : 'text-neutral-400 dark:text-neutral-500'">
+                                                    {{ newPrompt.categoryId ? getCategoryName(newPrompt.categoryId) : 'Выберите категорию' }}
+                                                </span>
+                                            </span>
+                                            <i class="fa-solid fa-chevron-down text-neutral-400 shrink-0" :class="isCategoryDropdownOpen ? 'rotate-180' : ''"></i>
+                                        </button>
+                                        <div 
+                                            v-if="isCategoryDropdownOpen" 
+                                            class="absolute top-full left-0 right-0 mt-1.5 rounded-xl bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-600 shadow-xl z-50 max-h-52 overflow-y-auto overflow-x-hidden"
+                                        >
+                                                <button 
+                                                    v-for="cat in categories" 
+                                                    :key="cat.id"
+                                                    type="button"
+                                                    @click="newPrompt.categoryId = cat.id; isCategoryDropdownOpen = false"
+                                                    class="w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer outline-none focus:outline-none first:rounded-t-lg last:rounded-b-lg"
+                                                    :class="newPrompt.categoryId === cat.id ? 'bg-primary/10 text-primary dark:bg-primary/20' : 'text-neutral-700 dark:text-neutral-200'"
+                                                >
+                                                    <i class="fa-solid fa-folder w-5 text-center shrink-0" :class="newPrompt.categoryId === cat.id ? 'text-primary' : 'text-neutral-400 dark:text-neutral-500'"></i>
+                                                    <span class="font-medium">{{ cat.name }}</span>
+                                                    <i v-if="newPrompt.categoryId === cat.id" class="fa-solid fa-check ml-auto text-primary"></i>
+                                                </button>
+                                                <div v-if="categories.length === 0" class="px-4 py-6 text-center text-neutral-400 dark:text-neutral-500 text-sm">
+                                                    Нет категорий
+                                                </div>
+                                            </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-neutral-600 dark:text-neutral-400 mb-1.5">Текст промпта</label>
+                                    <textarea 
+                                        v-model="newPrompt.text" 
+                                        rows="6" 
+                                        placeholder="Введите текст вашего промпта..." 
+                                        class="w-full px-4 py-3 rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary outline-none resize-none dark:text-white placeholder-neutral-400"
+                                    ></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="p-4 border-t border-neutral-100 dark:border-neutral-700 bg-neutral-50/50 dark:bg-neutral-900/50 flex gap-3">
+                            <button 
+                                @click="closeAddPromptModal"
+                                class="flex-1 py-3 px-4 rounded-xl border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 font-medium hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors cursor-pointer"
+                            >
+                                Отмена
+                            </button>
+                            <button 
+                                @click="addPrompt"
+                                class="flex-[2] py-3 px-4 rounded-xl bg-primary hover:brightness-90 text-white font-medium shadow-lg shadow-primary/30 active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                            >
+                                <i class="fa-solid fa-save"></i> Сохранить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </transition>
 
             <!-- PROMPT MODAL -->
             <transition name="fade">
@@ -772,6 +842,9 @@
                 // UI State
                 const expandedCategories = ref([]);
                 const isModalOpen = ref(false);
+                const isAddPromptModalOpen = ref(false);
+                const isCategoryDropdownOpen = ref(false);
+                const categoryDropdownRef = ref(null);
                 const selectedPrompt = ref(null);
                 const toasts = ref([]);
                 let toastIdCounter = 0;
@@ -901,6 +974,12 @@
                 };
 
                 // Prompts
+                const closeAddPromptModal = () => {
+                    isAddPromptModalOpen.value = false;
+                    isCategoryDropdownOpen.value = false;
+                    newPrompt.value = { title: '', text: '', categoryId: '' };
+                };
+
                 const addPrompt = () => {
                     if (!newPrompt.value.title || !newPrompt.value.text || !newPrompt.value.categoryId) {
                         showToast('Заполните все поля', 'error');
@@ -914,7 +993,7 @@
                         categoryId: newPrompt.value.categoryId
                     });
                     
-                    newPrompt.value = { title: '', text: '', categoryId: '' };
+                    closeAddPromptModal();
                     showToast('Промпт успешно добавлен!', 'success');
                     saveData();
                 };
@@ -1028,6 +1107,8 @@
                         document.body.removeChild(textArea);
                         return;
                     }
+
+                    closeModal();
                     
                     navigator.clipboard.writeText(text).then(() => {
                         showToast('Скопировано в буфер!', 'success');
@@ -1128,9 +1209,12 @@
                     }
                     updateAccentCss();
                     
-                    // Close color picker on outside click (handled by click.self on body/wrapper mostly, but we use event bubbling)
-                    document.addEventListener('click', () => {
+                    // Close color picker and category dropdown on outside click
+                    document.addEventListener('click', (e) => {
                         showColorInput.value = false;
+                        if (isCategoryDropdownOpen.value && categoryDropdownRef.value && !categoryDropdownRef.value.contains(e.target)) {
+                            isCategoryDropdownOpen.value = false;
+                        }
                     });
                 });
 
@@ -1145,6 +1229,9 @@
                     newCategoryName,
                     expandedCategories,
                     isModalOpen,
+                    isAddPromptModalOpen,
+                    isCategoryDropdownOpen,
+                    categoryDropdownRef,
                     selectedPrompt,
                     toasts,
                     editingCategoryId,
@@ -1167,6 +1254,7 @@
                     confirmDeletePrompt,
                     openPrompt,
                     closeModal,
+                    closeAddPromptModal,
                     getCategoryName,
                     getPromptsByCategory,
                     getPromptsCount,
