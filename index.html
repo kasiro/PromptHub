@@ -20,6 +20,12 @@
             --color-primary: var(--primary-color);
         }
     </style>
+    <style>
+      @media (max-width: 767px) {
+          .computer-row { display: flex; flex-direction: column; align-items: stretch; gap: 0.75rem; }
+          .computer-row .computer-actions { margin-left: 0; display:flex; justify-content: flex-end; }
+      }
+    </style>
 
     <style>
         :root {
@@ -178,8 +184,9 @@
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <i class="fa-solid fa-search text-neutral-400 group-focus-within:text-primary transition-colors text-lg"></i>
                                 </div>
+
                                 <input 
-                                    v-model="searchQuery" 
+                                    v-model="searchQuery"
                                     type="text" 
                                     placeholder="Поиск промптов по названию, тексту или категории..." 
                                     class="block w-full pl-12 pr-4 py-4 border border-neutral-200 dark:border-neutral-700 rounded-2xl leading-5 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-sm text-base"
@@ -302,7 +309,7 @@
                     </div>
 
                     <!-- SETTINGS TAB -->
-                    <div v-if="currentTab === 'settings'" class="space-y-6 max-w-2xl lg:max-w-full">
+                    <div v-if="currentTab === 'settings'" class="space-y-6 lg:space-x-6 lg:grid lg:grid-cols-2 max-w-2xl lg:max-w-full">
                         <h2 class="text-2xl font-bold px-1 text-neutral-900 dark:text-white md:hidden">Настройки</h2>
 
                         <!-- Appearance -->
@@ -452,9 +459,9 @@
                             <!-- Add Category -->
                             <div class="flex space-x-2 mb-4">
                                 <input 
-                                    v-model="newCategoryName" 
+                                    v-model="newCategoryName"
                                     type="text" 
-                                    placeholder="Название новой категории" 
+                                    placeholder="Название новой категории"
                                     class="flex-1 px-4 py-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-sm focus:ring-2 focus:ring-primary outline-none dark:text-white placeholder-neutral-400"
                                 >
                                 <button 
@@ -466,30 +473,31 @@
                             </div>
 
                             <!-- Category List -->
-                            <div class="space-y-2 lg:space-x-2 lg:grid lg:grid-cols-3 max-h-60 overflow-y-auto lg:pr-14 pr-1">
-                                <div 
-                                    v-for="cat in categories" 
-                                    :key="cat.id" 
-                                    class="flex items-center justify-between p-2 rounded-xl border transition-all duration-200"
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-2">
+                                <div
+                                    v-for="cat in categories"
+                                    :key="cat.id"
+                                    class="flex items-center justify-between p-2.5 rounded-xl border transition-all duration-200"
                                     :class="editingCategoryId === cat.id ? 'bg-white dark:bg-neutral-800 border-primary shadow-sm ring-1 ring-primary' : 'bg-neutral-50 dark:bg-neutral-900 border-transparent hover:border-neutral-200 dark:hover:border-neutral-700'"
                                 >
-                                    <div class="flex-1 min-w-0 mr-2">
+                                    <div class="flex items-center gap-3 flex-1 min-w-0 mr-2">
+                                        <i class="fa-solid fa-tag text-primary/50 w-5 text-center"></i>
                                         <span 
                                             v-if="editingCategoryId !== cat.id" 
-                                            class="text-sm font-medium text-neutral-800 dark:text-neutral-200 ml-2 block truncate"
+                                            class="text-sm font-medium text-neutral-800 dark:text-neutral-200 block truncate"
                                         >{{ cat.name }}</span>
                                         <input 
                                             v-else 
                                             v-model="editingCategoryName" 
                                             @keyup.enter="saveCategoryEdit(cat)"
+                                            @keyup.esc="editingCategoryId = null"
                                             placeholder="Название..."
                                             ref="editInput"
-                                            class="bg-transparent border-none px-2 py-1 text-sm w-full outline-none text-neutral-900 dark:text-white font-medium placeholder-neutral-400" 
-                                            auto-focus
+                                            class="bg-transparent border-none p-0 text-sm w-full outline-none text-neutral-900 dark:text-white font-medium placeholder-neutral-400"
                                         >
                                     </div>
                                     
-                                    <div class="flex items-center space-x-1 shrink-0">
+                                    <div class="flex items-center space-x-2 shrink-0">
                                         <template v-if="editingCategoryId !== cat.id">
                                             <button 
                                                 @click="startCategoryEdit(cat)" 
@@ -801,7 +809,7 @@
     </div>
 
     <script>
-        const { createApp, ref, computed, onMounted, watch } = Vue;
+        const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
 
         createApp({
             setup() {
@@ -838,6 +846,7 @@
                 const newCategoryName = ref('');
                 const editingCategoryId = ref(null);
                 const editingCategoryName = ref('');
+                const editInput = ref(null);
 
                 // UI State
                 const expandedCategories = ref([]);
@@ -1080,6 +1089,9 @@
                 const startCategoryEdit = (cat) => {
                     editingCategoryId.value = cat.id;
                     editingCategoryName.value = cat.name;
+                    nextTick(() => {
+                        editInput.value?.focus();
+                    });
                 };
 
                 const saveCategoryEdit = (cat) => {
@@ -1236,6 +1248,7 @@
                     toasts,
                     editingCategoryId,
                     editingCategoryName,
+                    editInput,
                     accentColor,
                     availableColors,
                     showColorInput,
